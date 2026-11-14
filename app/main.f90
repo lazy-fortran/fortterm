@@ -7,6 +7,7 @@ program fortterm
     use fortui_term, only: term_t, term_close, term_pump, term_available
     use fortui_terminal, only: terminal, terminal_view_t
     use fortterm_args, only: options_t, parse_options, usage
+    use fortterm_settings, only: settings_t, read_settings
     implicit none
 
     integer, parameter :: MAX_TABS = 16
@@ -18,9 +19,11 @@ program fortterm
     character(len=1024), allocatable :: args(:)
     type(options_t) :: opts
     character(len=:), allocatable :: shown_title, title, tab_labels(:)
-    integer(int32) :: fg, bg, palette(16)
-    integer :: k, n, active, stat, ntabs, selected, focused_tab
-    real :: font_size
+    integer(int32) :: fg, bg, palette(16), cursor_color
+    integer :: k, n, active, stat, ntabs, selected, focused_tab, cursor_shape, geo(2)
+    real :: font_size, default_size
+    logical :: sized
+    type(settings_t) :: user
 
     n = command_argument_count()
     allocate(args(n))
@@ -41,11 +44,28 @@ program fortterm
         error stop 2
     end if
     if (.not. term_available()) error stop "fortterm: FortUI was built without its terminal"
-    font_size = 14.0
-    if (opts%font_size > 0.0) font_size = opts%font_size
+    ! Look like the user's xfce4-terminal: font, colours, cursor, size.
+    call read_settings(user)
+    default_size = 14.0
+    if (user%font_points > 0.0) default_size = user%font_points * user%dpi / 72.0
+    if (len(user%font_family) > 0) call ui_set_cell_font(user%font_family)
     call colours(opts%colors, fg, bg, palette)
+    cursor_color = 0
+    cursor_shape = user%cursor_shape
+    if (len(opts%colors) == 0) then
+        if (user%have_fg) fg = user%fg
+        if (user%have_bg) bg = user%bg
+        if (user%have_palette) palette = user%palette
+        if (user%have_cursor) cursor_color = user%cursor
+    end if
+    if (opts%font_size > 0.0) default_size = opts%font_size
+    font_size = default_size
+    geo = [80, 24]
+    if (user%cols > 0 .and. user%rows > 0) geo = [user%cols, user%rows]
+    sized = .false.
 
-    call ui_init("auto", 800, 520, "fortterm", stat=stat)
+    call ui_init("auto", nint(0.5 * font_size) * geo(1), nint(font_size) * geo(2), "fortterm", &
+        stat=stat)
     if (stat /= 0) error stop "fortterm: no display and no terminal available"
     call ui_set_window_margin(0.0)
     call open_tab(.true.)
@@ -61,7 +81,7 @@ program fortterm
         if (ui_shortcut("ctrl+shift+arrowleft", repeat=.true.)) active = next_tab(active, -1)
         if (ui_shortcut("ctrl+shift+=", repeat=.true.)) font_size = min(48.0, font_size + 1.0)
         if (ui_shortcut("ctrl+shift+-", repeat=.true.)) font_size = max(6.0, font_size - 1.0)
-        if (ui_shortcut("ctrl+shift+0")) font_size = 14.0
+        if (ui_shortcut("ctrl+shift+0")) font_size = default_size
         ntabs = count(used)
         if (ntabs > 1) then
             call labels()
@@ -82,6 +102,13 @@ program fortterm
             end if
         end do
         call ui_present()
+        ! The window in whole cells of the user's geometry, once the cell size
+        ! is known (it depends on the font the host found).
+        if (.not. sized .and. views(active)%cell_w > 0.0) then
+            call ui_set_window_size(nint(real(geo(1)) * views(active)%cell_w), &
+                nint(real(geo(2)) * views(active)%cell_h))
+            sized = .true.
+        end if
 
         title = opts%title
         if (len(title) == 0 .and. allocated(terms(active)%title)) title = terms(active)%title
@@ -117,6 +144,8 @@ contains
             terms(j)%default_bg = bg
             terms(j)%palette = palette
             terms(j)%own_palette = .true.
+            terms(j)%cursor_color = cursor_color
+            terms(j)%cursor_shape = cursor_shape
             if (.not. first) then
                 if (allocated(opts%command)) deallocate(opts%command)
                 allocate(opts%command(0))
