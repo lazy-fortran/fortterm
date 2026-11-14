@@ -104,11 +104,13 @@ program fortterm
     sized = .false.
 
     call ui_init("auto", nint(0.5 * font_size) * geo(1), nint(font_size) * geo(2), "fortterm", &
-        stat=stat, hidden=opts%spare)
+        stat=stat, hidden=opts%spare .or. opts%maximize)
     if (stat /= 0) error stop "fortterm: no display and no terminal available"
     if (opts%spare) call wait_as_spare()
     if (opts%maximize .and. .not. opts%spare) then
+        ! Maximized while hidden, then shown: no small window first.
         call ui_maximize_window()
+        call ui_set_window_visible(.true.)
         sized = .true.
     end if
     if (timing) write (error_unit, '(a,f7.3)') "fortterm: window ", ui_time() - started
@@ -178,6 +180,8 @@ program fortterm
         if (count(used) == 0) exit
         if (.not. used(active)) active = next_tab(active, 1)
     end do
+    ! Gone at once; tearing the GPU and the programs down takes a moment.
+    call ui_set_window_visible(.false.)
     do k = 1, MAX_TABS
         if (used(k)) call term_close(terms(k))
     end do
@@ -231,6 +235,7 @@ contains
         spawn_spare = .true.
         if (opts%maximize) call ui_maximize_window()
         call ui_set_window_visible(.true.)
+        sized = sized .or. opts%maximize
     end subroutine wait_as_spare
 
     subroutine open_tab(first)
@@ -242,6 +247,7 @@ contains
             if (used(j)) cycle
             used(j) = .true.
             views(j) = terminal_view_t()
+            views(j)%show_exit = opts%hold
             terms(j)%default_fg = fg
             terms(j)%default_bg = bg
             terms(j)%palette = palette
