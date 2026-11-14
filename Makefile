@@ -21,7 +21,9 @@ test:
 # The program, its desktop entry, and the XFCE helper through which XFCE can
 # choose it as the terminal emulator (Default Applications > Utilities).
 install:
-	$(FLAGS) $(FPM) install --prefix "$(PREFIX)"
+	$(FLAGS) $(FPM) install --prefix "$(CURDIR)/build/stage"
+	# A new file, not an overwrite: running windows keep their program.
+	install -Dm755 build/stage/bin/fortterm "$(PREFIX)/bin/fortterm"
 	install -Dm644 data/fortterm.desktop "$(PREFIX)/share/applications/fortterm.desktop"
 	sed -i 's|^Exec=.*|Exec=$(PREFIX)/bin/fortterm|' \
 		"$(PREFIX)/share/applications/fortterm.desktop"

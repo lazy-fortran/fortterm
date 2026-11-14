@@ -19,4 +19,4 @@ source-form = "free"
 cpp.suffixes = ["f90"]
 
 [dependencies]
-fortui = { git = "https://github.com/lazy-fortran/fortui.git", rev = "d2fb3f593162feeac6a4dc9551bf4476721c9870" }
+fortui = { git = "https://github.com/lazy-fortran/fortui.git", rev = "0357510dc8a8931690423195f73facc0a5a87690" }
