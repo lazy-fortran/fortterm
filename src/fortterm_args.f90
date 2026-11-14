@@ -15,6 +15,7 @@ module fortterm_args
         logical :: version = .false.
         ! Wait hidden for the next start (fortterm starts these itself).
         logical :: spare = .false.
+        logical :: maximize = .false.
         real :: font_size = 0.0
         ! Options of xfce4-terminal that mean nothing here.
         integer :: ignored = 0
@@ -64,6 +65,8 @@ contains
                 opts%hold = .true.
             case ("--spare")
                 opts%spare = .true.
+            case ("--maximize")
+                opts%maximize = .true.
             case ("-e", "--command")
                 call take(value)
                 opts%command = [character(len=1024) :: "/bin/sh", "-c", value]
@@ -83,7 +86,7 @@ contains
             case ("--colors")
                 call take(value)
                 opts%colors = value
-            case ("--tab", "--window", "--disable-server", "--maximize", "--fullscreen", &
+            case ("--tab", "--window", "--disable-server", "--fullscreen", &
                     "--show-menubar", "--hide-menubar", "--show-borders", "--hide-borders", &
                     "--show-toolbar", "--hide-toolbar")
                 opts%ignored = opts%ignored + 1
@@ -127,6 +130,7 @@ contains
             "  --working-directory DIR     start in DIR" // nl // &
             "  -T, --title TITLE           window title (else the program's)" // nl // &
             "  -H, --hold                  keep the window when the program ends" // nl // &
+            "  --maximize                  fill the screen's work area" // nl // &
             "  --font-size N               text size in points (default 14)" // nl // &
             "  --colors dark|light         colour scheme (default dark)" // nl // nl // &
             "Keys: Ctrl+Shift+C copy, Ctrl+Shift+V paste, Ctrl+Shift+T new tab," // nl // &

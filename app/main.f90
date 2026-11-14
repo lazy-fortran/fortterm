@@ -10,7 +10,7 @@ program fortterm
     use fortterm_settings, only: settings_t, read_settings
     use fortterm_spare, only: spare_path, spare_connect, spare_listen, spare_accept, &
         spare_send, spare_receive, spare_close, spare_unlink, spare_spawn, spare_outdated, &
-        spare_request, spare_apply
+        spare_request, spare_apply, spare_same_program
     implicit none
 
     integer, parameter :: MAX_TABS = 16
@@ -107,6 +107,10 @@ program fortterm
         stat=stat, hidden=opts%spare)
     if (stat /= 0) error stop "fortterm: no display and no terminal available"
     if (opts%spare) call wait_as_spare()
+    if (opts%maximize .and. .not. opts%spare) then
+        call ui_maximize_window()
+        sized = .true.
+    end if
     if (timing) write (error_unit, '(a,f7.3)') "fortterm: window ", ui_time() - started
     call ui_set_window_margin(0.0)
     call open_tab(.true.)
@@ -207,6 +211,12 @@ contains
                 call spare_unlink(spare_path())
                 stop
             end if
+            if (.not. spare_same_program(request)) then
+                ! Another build of fortterm: it starts by itself.
+                call spare_send(conn, "other")
+                call spare_close(conn)
+                cycle
+            end if
             call spare_send(conn, "ok")
             call spare_close(conn)
             exit
@@ -219,6 +229,7 @@ contains
         if (len(opts%title) == 0) continue
         if (opts%font_size > 0.0) font_size = opts%font_size
         spawn_spare = .true.
+        if (opts%maximize) call ui_maximize_window()
         call ui_set_window_visible(.true.)
     end subroutine wait_as_spare
 

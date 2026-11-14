@@ -13,14 +13,17 @@ make install    # ~/.local/bin/fortterm, desktop entry, XFCE helper
 fortterm                         # the login shell
 fortterm -x htop                 # a program with its arguments
 fortterm -e "ls -l | less" -H    # a command line; keep the window open
-fortterm --working-directory=DIR --font-size=12 --colors=light
+fortterm --working-directory=DIR --font-size=12 --colors=light --maximize
 ```
 
 Keys: Ctrl+Shift+C copies the selection, Ctrl+Shift+V pastes, Ctrl+Shift+T
 opens a tab, Ctrl+Shift+W closes it, Ctrl+Shift+Left/Right switch tabs,
 Ctrl+Shift+= and Ctrl+Shift+- change the text size, the wheel and Shift+Page
 Up/Down move through the scrollback. The window takes the title the program
-sets.
+sets. URLs are underlined under the pointer and Ctrl+click opens them, also
+inside tmux. Selecting copies to the primary selection (middle-click pastes);
+Shift selects even when a program takes the mouse; programs such as tmux can set
+the clipboard (OSC 52), but not read it.
 
 To make it XFCE's terminal, choose fortterm under Settings > Default
 Applications > Utilities > Terminal Emulator after `make install`.

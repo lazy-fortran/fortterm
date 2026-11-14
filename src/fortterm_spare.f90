@@ -10,7 +10,7 @@ module fortterm_spare
 
     public :: spare_path, spare_connect, spare_listen, spare_accept, spare_send, spare_receive
     public :: spare_close, spare_unlink, spare_spawn, spare_outdated, spare_request
-    public :: spare_apply
+    public :: spare_apply, spare_same_program
 
     integer(c_int), parameter :: AF_UNIX = 1, SOCK_STREAM = 1
 
@@ -229,6 +229,12 @@ contains
         spare_outdated = index(exe(), " (deleted)") > 0
     end function spare_outdated
 
+    logical function spare_same_program(req)
+        !! The start came from this very program file (not another build).
+        character(*), intent(in) :: req
+        spare_same_program = index(req, "exe=" // exe() // c_null_char) == 1
+    end function spare_same_program
+
     function spare_request(args) result(req)
         !! What a start hands the spare: the working directory, the arguments
         !! and the environment, as NUL-separated "cwd=", "arg=", "env=" items.
@@ -236,7 +242,7 @@ contains
         character(len=:), allocatable :: req
         character(kind=c_char, len=4096) :: dir
         integer :: k
-        req = ""
+        req = "exe=" // exe() // c_null_char
         if (c_associated(c_getcwd(dir, int(len(dir), c_size_t)))) &
             req = "cwd=" // dir(1:index(dir, c_null_char) - 1) // c_null_char
         do k = 1, size(args)
