@@ -8,7 +8,7 @@ or inside another terminal, and it takes the command line of xfce4-terminal, so
 XFCE can use it as its terminal emulator.
 
 ```sh
-make            # needs SDL3, SDL3_ttf, fontconfig and libvterm
+make            # needs SDL3, SDL3_ttf and fontconfig
 make install    # ~/.local/bin/fortterm, desktop entry, XFCE helper
 fortterm                         # the login shell
 fortterm -x htop                 # a program with its arguments
@@ -25,9 +25,19 @@ sets.
 To make it XFCE's terminal, choose fortterm under Settings > Default
 Applications > Utilities > Terminal Emulator after `make install`.
 
-The screen state comes from libvterm (MIT); the images, the drawing and
-everything else are FortUI. The text face is the monospace face of the FortUI
-theme (`FORTUI_THEME`, or `theme =` in `~/.config/fortui/config`).
+fortterm takes font, colours, cursor and window size from your xfce4-terminal
+settings (xfconf, else `terminalrc`), and draws the text as xfce4-terminal does,
+pixel for pixel; command-line options override them.
+
+Startup is instant: after a start, one fortterm waits hidden with its window and
+GPU ready (asleep, no CPU), and the next `fortterm` hands it the command line,
+directory and environment over a socket in `$XDG_RUNTIME_DIR`; its window
+appears within about 50 ms. A spare left from an older build steps aside.
+`FORTTERM_TIMING=1` prints where the time goes.
+
+Everything is Fortran on FortUI: the terminal engine, the images and the
+drawing; it shows 400 MB of coloured text in about 3 s, as fast as `cat` and
+the kernel deliver it.
 
 ## Dependencies and licences
 
@@ -37,4 +47,3 @@ fortterm is MIT licensed ([LICENSE](LICENSE)).
 |---|---|
 | FortUI (fetched by fpm) | MIT |
 | SDL3, SDL3_ttf, fontconfig | zlib; zlib; MIT-style |
-| libvterm 0.3+ | MIT |

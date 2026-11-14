@@ -19,6 +19,8 @@ module fortterm_settings
         ! 1 block, 2 bar (I-beam), 3 underline, as fortui_term's CURSOR_*.
         integer :: cursor_shape = 1
         integer :: cols = 0, rows = 0
+        ! "Show bold text in bright colors" (xfce4-terminal's default: on).
+        logical :: bold_bright = .true.
     end type settings_t
 
 contains
@@ -84,6 +86,7 @@ contains
             case ("ColorPalette"); key = "color-palette"
             case ("MiscCursorShape"); key = "misc-cursor-shape"
             case ("MiscDefaultGeometry"); key = "misc-default-geometry"
+            case ("ColorBoldIsBright"); key = "color-bold-is-bright"
             case default; cycle
             end select
             call apply(s, key, trim(line(eq + 1:)))
@@ -124,6 +127,8 @@ contains
                 if (a > len(value) .and. k < 16) s%have_palette = .false.
                 if (a > len(value)) exit
             end do
+        case ("color-bold-is-bright", "ColorBoldIsBright")
+            s%bold_bright = index(value, "rue") > 0 .or. index(value, "RUE") > 0
         case ("misc-cursor-shape")
             if (index(value, "IBEAM") > 0) s%cursor_shape = 2
             if (index(value, "UNDERLINE") > 0) s%cursor_shape = 3

@@ -8,11 +8,14 @@ program fortterm
     use fortui_terminal, only: terminal, terminal_view_t
     use fortterm_args, only: options_t, parse_options, usage
     use fortterm_settings, only: settings_t, read_settings
+    use fortterm_spare, only: spare_path, spare_connect, spare_listen, spare_accept, &
+        spare_send, spare_receive, spare_close, spare_unlink, spare_spawn, spare_outdated, &
+        spare_request, spare_apply
     implicit none
 
     integer, parameter :: MAX_TABS = 16
     character(len=*), parameter :: VERSION = "0.1.0"
-    ! Terminals stay in place while they run (libvterm keeps their address).
+    ! Terminals stay in place while they run (their reader threads point into them).
     type(term_t), target, save :: terms(MAX_TABS)
     type(terminal_view_t), save :: views(MAX_TABS)
     logical :: used(MAX_TABS) = .false.
@@ -24,7 +27,20 @@ program fortterm
     real :: font_size, default_size
     logical :: sized
     type(settings_t) :: user
+    ! FORTTERM_TIMING=1: seconds from start to the window, the first frame and
+    ! the program's first output, on standard error.
+    logical :: timing, first_frame, first_output
+    double precision :: started
+    ! Hand-over to a waiting spare instance.
+    integer :: conn, lfd
+    logical :: got, spawn_spare
+    character(len=:), allocatable :: request, answer, req_cwd
+    real :: cw, ch
 
+    started = ui_time()
+    timing = env_set("FORTTERM_TIMING")
+    first_frame = .true.
+    first_output = .true.
     n = command_argument_count()
     allocate(args(n))
     do k = 1, n
@@ -44,6 +60,29 @@ program fortterm
         error stop 2
     end if
     if (.not. term_available()) error stop "fortterm: FortUI was built without its terminal"
+    ! A spare instance waits hidden with its window ready: hand it this start.
+    spawn_spare = .false.
+    if (.not. opts%spare) then
+        conn = spare_connect(spare_path())
+        if (conn >= 0) then
+            call spare_send(conn, spare_request(args))
+            call spare_receive(conn, answer, got)
+            call spare_close(conn)
+            if (got .and. answer == "ok") then
+                if (timing) write (error_unit, '(a,f7.3)') "fortterm: handed to the spare ", &
+                    ui_time() - started
+                stop
+            end if
+        end if
+        spawn_spare = len(spare_path()) > 0
+    else
+        ! Another spare already waits: nothing to do.
+        conn = spare_connect(spare_path())
+        if (conn >= 0) then
+            call spare_close(conn)
+            stop
+        end if
+    end if
     ! Look like the user's xfce4-terminal: font, colours, cursor, size.
     call read_settings(user)
     default_size = 14.0
@@ -65,8 +104,10 @@ program fortterm
     sized = .false.
 
     call ui_init("auto", nint(0.5 * font_size) * geo(1), nint(font_size) * geo(2), "fortterm", &
-        stat=stat)
+        stat=stat, hidden=opts%spare)
     if (stat /= 0) error stop "fortterm: no display and no terminal available"
+    if (opts%spare) call wait_as_spare()
+    if (timing) write (error_unit, '(a,f7.3)') "fortterm: window ", ui_time() - started
     call ui_set_window_margin(0.0)
     call open_tab(.true.)
     active = 1
@@ -102,6 +143,15 @@ program fortterm
             end if
         end do
         call ui_present()
+        if (timing .and. first_frame) &
+            write (error_unit, '(a,f7.3)') "fortterm: first frame ", ui_time() - started
+        ! Once shown, the next start is prepared.
+        if (first_frame .and. spawn_spare) call spare_spawn()
+        first_frame = .false.
+        if (timing .and. first_output .and. terms(active)%generation > 1) then
+            write (error_unit, '(a,f7.3)') "fortterm: program output shown ", ui_time() - started
+            first_output = .false.
+        end if
         ! The window in whole cells of the user's geometry, once the cell size
         ! is known (it depends on the font the host found).
         if (.not. sized .and. views(active)%cell_w > 0.0) then
@@ -131,6 +181,47 @@ program fortterm
 
 contains
 
+    subroutine wait_as_spare()
+        !! Size the hidden window, then sleep until a start arrives; take its
+        !! arguments, directory and environment and show the window.
+        character(len=1024), allocatable :: req_args(:)
+        call ui_cell_metrics(font_size, cw, ch)
+        call ui_set_window_size(nint(real(geo(1)) * cw), nint(real(geo(2)) * ch))
+        sized = .true.
+        lfd = spare_listen(spare_path())
+        if (lfd < 0) stop
+        do
+            conn = spare_accept(lfd)
+            if (conn < 0) cycle
+            call spare_receive(conn, request, got)
+            if (.not. got) then
+                call spare_close(conn)
+                cycle
+            end if
+            if (spare_outdated()) then
+                ! fortterm was updated since this spare started: the caller
+                ! starts by itself.
+                call spare_send(conn, "outdated")
+                call spare_close(conn)
+                call spare_close(lfd)
+                call spare_unlink(spare_path())
+                stop
+            end if
+            call spare_send(conn, "ok")
+            call spare_close(conn)
+            exit
+        end do
+        call spare_close(lfd)
+        call spare_unlink(spare_path())
+        call spare_apply(request, req_args, req_cwd)
+        call parse_options(req_args, opts)
+        if (len(opts%cwd) == 0) opts%cwd = req_cwd
+        if (len(opts%title) == 0) continue
+        if (opts%font_size > 0.0) font_size = opts%font_size
+        spawn_spare = .true.
+        call ui_set_window_visible(.true.)
+    end subroutine wait_as_spare
+
     subroutine open_tab(first)
         !! A new tab running the command line's program (the first tab) or
         !! the shell (later ones).
@@ -145,6 +236,7 @@ contains
             terms(j)%palette = palette
             terms(j)%own_palette = .true.
             terms(j)%cursor_color = cursor_color
+            terms(j)%bold_bright = user%bold_bright
             terms(j)%cursor_shape = cursor_shape
             if (.not. first) then
                 if (allocated(opts%command)) deallocate(opts%command)
@@ -226,6 +318,14 @@ contains
             bg = ui_rgba(30, 30, 30)
         end if
     end subroutine colours
+
+    logical function env_set(name)
+        character(*), intent(in) :: name
+        integer :: n, st
+        character(len=8) :: v
+        call get_environment_variable(name, v, n, st)
+        env_set = st == 0 .and. n > 0 .and. v /= "0"
+    end function env_set
 
     function itoa(i) result(s)
         integer, intent(in) :: i
