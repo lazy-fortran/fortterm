@@ -65,6 +65,12 @@ module fortterm_spare
             import :: c_int, c_char
             character(kind=c_char), intent(in) :: path(*)
         end function
+        integer(c_int) function c_poll(fds, n, timeout) bind(C, name="poll")
+            import :: c_int, c_long
+            integer(c_int), intent(inout) :: fds(2)
+            integer(c_long), value :: n
+            integer(c_int), value :: timeout
+        end function
         type(c_ptr) function c_getcwd(buf, n) bind(C, name="getcwd")
             import :: c_ptr, c_char, c_size_t
             character(kind=c_char), intent(out) :: buf(*)
@@ -167,8 +173,16 @@ contains
         character(*), intent(in) :: message
         character(len=8) :: head
         integer(c_long) :: w
+        integer :: done
+        character(len=:), allocatable :: all
         write (head, '(i8.8)') len(message)
-        w = c_write(int(fd, c_int), head // message, int(8 + len(message), c_size_t))
+        all = head // message
+        done = 0
+        do while (done < len(all))
+            w = c_write(int(fd, c_int), all(done + 1:), int(len(all) - done, c_size_t))
+            if (w <= 0) return
+            done = done + int(w)
+        end do
     end subroutine spare_send
 
     subroutine spare_receive(fd, message, ok)
@@ -193,9 +207,14 @@ contains
         character(*), intent(out) :: buf
         integer(c_long) :: got
         integer :: done
+        integer(c_int) :: pfd(2)
         done = 0
         read_all = .false.
         do while (done < len(buf))
+            ! Two seconds at most for each part (a stalled peer must not hang
+            ! either side).
+            pfd = [int(fd, c_int), 1_c_int]
+            if (c_poll(pfd, 1_c_long, 2000_c_int) <= 0) return
             got = c_read(int(fd, c_int), buf(done + 1:), int(len(buf) - done, c_size_t))
             if (got <= 0) return
             done = done + int(got)
@@ -244,7 +263,7 @@ contains
         integer :: k
         req = "exe=" // exe() // c_null_char
         if (c_associated(c_getcwd(dir, int(len(dir), c_size_t)))) &
-            req = "cwd=" // dir(1:index(dir, c_null_char) - 1) // c_null_char
+            req = req // "cwd=" // dir(1:index(dir, c_null_char) - 1) // c_null_char
         do k = 1, size(args)
             req = req // "arg=" // trim(args(k)) // c_null_char
         end do
