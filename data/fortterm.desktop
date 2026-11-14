@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=fortterm
+GenericName=Terminal
+Comment=Terminal emulator with kitty and sixel images
+Exec=fortterm
+Icon=utilities-terminal
+Terminal=false
+StartupNotify=true
+Categories=System;TerminalEmulator;
+Keywords=shell;prompt;command;commandline;

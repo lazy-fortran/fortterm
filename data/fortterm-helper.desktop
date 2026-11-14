@@ -1,0 +1,11 @@
+[Desktop Entry]
+NoDisplay=true
+Version=1.0
+Encoding=UTF-8
+Type=X-XFCE-Helper
+X-XFCE-Category=TerminalEmulator
+Icon=utilities-terminal
+Name=fortterm
+X-XFCE-Binaries=fortterm;
+X-XFCE-Commands=%B;
+X-XFCE-CommandsWithParameter=%B -x %s;
