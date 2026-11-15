@@ -1,6 +1,6 @@
 program fortterm
     !! A terminal emulator on FortUI: tabs of terminals that show kitty and
-    !! sixel images, in a window (SDL3 GPU) or inside another terminal.
+    !! sixel images, in a window (Vulkan) or inside another terminal.
     use iso_fortran_env, only: error_unit, int32
     use fortui
     use fortui_backends, only: ui_init

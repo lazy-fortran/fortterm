@@ -159,7 +159,7 @@ contains
 
     integer function spare_accept(fd) result(conn)
         !! Wait (asleep) for the next start. SIGTERM and SIGINT end a waiting
-        !! spare at once (SDL would turn them into events nobody reads now).
+        !! spare at once (the window would turn them into events nobody reads now).
         integer, intent(in) :: fd
         type(c_funptr) :: old
         old = c_signal(15_c_int, c_null_funptr)

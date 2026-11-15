@@ -3,12 +3,12 @@
 A terminal emulator written in Fortran on [FortUI](https://github.com/lazy-fortran/fortui).
 It shows images from the kitty graphics protocol and from sixel strings, so
 tools such as `chafa`, `kitten icat`, tmux (with sixel) and FortUI's own
-terminal applications draw real pixels. It runs in a window on the GPU (SDL3)
-or inside another terminal, and it takes the command line of xfce4-terminal, so
-XFCE can use it as its terminal emulator.
+terminal applications draw real pixels. It runs in a window on the GPU
+(Vulkan) or inside another terminal, and it takes the command line of
+xfce4-terminal, so XFCE can use it as its terminal emulator.
 
 ```sh
-make            # needs SDL3, SDL3_ttf and fontconfig
+make            # needs only gfortran; at run time X11 (libxcb) and a Vulkan driver
 make install    # ~/.local/bin/fortterm, desktop entry, XFCE helper
 fortterm                         # the login shell
 fortterm -x htop                 # a program with its arguments
@@ -49,4 +49,4 @@ fortterm is MIT licensed ([LICENSE](LICENSE)).
 | Needs | Licence |
 |---|---|
 | FortUI (fetched by fpm) | MIT |
-| SDL3, SDL3_ttf, fontconfig | zlib; zlib; MIT-style |
+| at run time, opened rather than linked: libxcb, the Vulkan loader and a Vulkan 1.3 driver | MIT; Apache-2.0; the driver's |

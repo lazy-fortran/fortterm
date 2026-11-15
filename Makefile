@@ -1,9 +1,9 @@
 FPM ?= fpm
 PREFIX ?= $(HOME)/.local
-# FortUI's SDL3 GPU backend and its terminal emulator.
-FLAGS = FPM_FFLAGS="$${FPM_FFLAGS:-} -O2 -cpp -DENABLE_SDL=1 -DENABLE_TERM=1" \
+# FortUI's terminal emulator; the desktop window needs no flag.
+FLAGS = FPM_FFLAGS="$${FPM_FFLAGS:-} -O2 -cpp -DENABLE_TERM=1" \
 	FPM_CFLAGS="$${FPM_CFLAGS:-} -O2 -DENABLE_TERM=1" \
-	FPM_LDFLAGS="$${FPM_LDFLAGS:-} -lSDL3 -lSDL3_ttf -lfontconfig -lutil -lpthread"
+	FPM_LDFLAGS="$${FPM_LDFLAGS:-} -lutil -lpthread"
 
 .PHONY: all build run test install clean
 
