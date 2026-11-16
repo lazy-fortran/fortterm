@@ -106,6 +106,9 @@ program fortterm
     call ui_init("auto", nint(0.5 * font_size) * geo(1), nint(font_size) * geo(2), "fortterm", &
         stat=stat, hidden=opts%spare .or. opts%maximize)
     if (stat /= 0) error stop "fortterm: no display and no terminal available"
+    ! The terminal's background from the start, also in the spare's hidden frames:
+    ! never the theme's grey when the window appears.
+    call ui_set_window_background(bg)
     if (opts%spare) call wait_as_spare()
     if (opts%maximize .and. .not. opts%spare) then
         ! Maximized while hidden, then shown: no small window first.
