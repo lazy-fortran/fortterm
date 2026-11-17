@@ -13,8 +13,6 @@ module fortterm_args
         logical :: hold = .false.
         logical :: help = .false.
         logical :: version = .false.
-        ! Wait hidden for the next start (fortterm starts these itself).
-        logical :: spare = .false.
         logical :: maximize = .false.
         real :: font_size = 0.0
         ! Options of xfce4-terminal that mean nothing here.
@@ -63,8 +61,6 @@ contains
                 opts%version = .true.
             case ("-H", "--hold")
                 opts%hold = .true.
-            case ("--spare")
-                opts%spare = .true.
             case ("--maximize")
                 opts%maximize = .true.
             case ("-e", "--command")

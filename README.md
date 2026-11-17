@@ -32,11 +32,8 @@ fortterm takes font, colours, cursor and window size from your xfce4-terminal
 settings (xfconf, else `terminalrc`), and draws the text as xfce4-terminal does,
 pixel for pixel; command-line options override them.
 
-Startup is instant: after a start, one fortterm waits hidden with its window and
-GPU ready (asleep, no CPU), and the next `fortterm` hands it the command line,
-directory and environment over a socket in `$XDG_RUNTIME_DIR`; its window
-appears within about 50 ms. A spare left from an older build steps aside.
-`FORTTERM_TIMING=1` prints where the time goes.
+Each launch opens a window with its own process. Closing the window ends that
+process. `FORTTERM_TIMING=1` prints startup timings.
 
 Everything is Fortran on FortUI: the terminal engine, the images and the
 drawing; it shows 400 MB of coloured text in about 3 s, as fast as `cat` and
