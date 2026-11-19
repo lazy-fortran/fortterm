@@ -25,6 +25,11 @@ inside tmux. Selecting copies to the primary selection (middle-click pastes);
 Shift selects even when a program takes the mouse; programs such as tmux can set
 the clipboard (OSC 52), but not read it.
 
+Keys follow the X server's layouts, also a second layout, and the Compose
+sequences of the locale: a dead key before a space types the plain
+character (`'` space gives `'`), and a dead key before a letter it does not
+compose with types both.
+
 To make it XFCE's terminal, choose fortterm under Settings > Default
 Applications > Utilities > Terminal Emulator after `make install`.
 
@@ -47,3 +52,4 @@ fortterm is MIT licensed ([LICENSE](LICENSE)).
 |---|---|
 | FortUI (fetched by fpm) | MIT |
 | at run time, opened rather than linked: libxcb, the Vulkan loader and a Vulkan 1.3 driver | MIT; Apache-2.0; the driver's |
+| at run time, for keyboard layouts and Compose sequences: libxkbcommon, libxkbcommon-x11, libxcb-xkb | MIT |
